@@ -1,5 +1,16 @@
-import React, { ReactNode } from 'react'
-import { Link } from '@chakra-ui/react'
+import React, { ReactNode, useEffect, useState } from 'react'
+import { Link,  Table,
+  Thead,
+  Tbody,
+  Tfoot,
+  Tr,
+  Th,
+  Td,
+  TableCaption,
+  TableContainer,
+  Input,
+  NumberInput,
+  NumberInputField, } from '@chakra-ui/react'
 import {
   Container,
   Box,
@@ -8,9 +19,16 @@ import {
   HStack,
   H1,
   H2,
+  Form,
+  Button,
 } from '@northlight/ui'
 import { palette } from '@northlight/tokens'
 import { ExcelDropzone, ExcelRow } from './excel-dropzone.jsx'
+import scores from './scores.js'
+import users from './users.js'
+import calculateHighestScorers from './helpers/calculateHighestScorers.js'
+import Data from './types.js'
+
 
 interface ExternalLinkProps {
   href: string,
@@ -20,10 +38,33 @@ interface ExternalLinkProps {
 const ExternalLink = ({ href, children }: ExternalLinkProps) => <Link href={href} isExternal sx={ {color: palette.blue['500'], textDecoration: 'underline'} }>{ children }</Link>
 
 export default function App () {
+  const [allScores, setAllScores] = useState<{name: string; score: number}[]>([])
+  const [highestScores, setHighestScores] = useState<Data[]>([])
+  const [hoveredName, setHoveredName] = useState<Data>()
+  const [name,setName] = useState<string>('')
+  const [score,setScore] = useState<number>(0)
   function handleSheetData (data: ExcelRow[]) {
-    // replace this log with actual handling of the data
-    console.log(data)
+    setAllScores(data)
   }
+ 
+
+  useEffect( () => {
+    const allUserScores = scores.map((s) => {
+      const user = users.find(u => u._id === s.userId);
+      return  {name: user!.name ,score:s.score} ;
+    });
+    setAllScores(allUserScores)
+  },[])
+
+  
+  useEffect( () => {
+   
+    setHighestScores(calculateHighestScorers(allScores))
+  },[allScores, setAllScores])
+
+
+console.log(allScores,'scores')
+console.log(highestScores,'high scores')
 
   return (
     <Container maxW="6xl" padding="4">
@@ -34,6 +75,51 @@ export default function App () {
           label="Import excel file here"
         />
         <VStack align="left">
+          <Box>
+          
+          <TableContainer maxWidth={1000} >
+
+  <Table variant='simple'>
+    <TableCaption>Score table</TableCaption>
+    <Thead>
+      <Tr>
+        <Th>Name</Th>
+        <Th>Score</Th>
+      </Tr>
+    </Thead>
+    <Tbody>
+      
+        {highestScores?.map((us,i) => (
+          <Tr key={i} onMouseEnter={() => setHoveredName(us)}
+          onMouseLeave={() => setHoveredName(undefined)}>
+            <Td>
+            {us.name}
+            </Td> 
+            <Td >
+            { hoveredName === us ? us.score.join(', ') : us.score.slice(0,1)}
+            </Td>
+          </Tr>
+        ))
+        }
+     
+    
+    </Tbody>
+  </Table>
+  <Form initialValues={[]}  onSubmit={() => setAllScores([...allScores, {name, score}])}>
+        <Input size={'xs'} onChange={(e) => setName(e.target.value)} value={name} placeholder='Enter name'>
+        </Input>
+        <NumberInput >
+          <NumberInputField  onChange={(e) => setScore(Number(e.target.value))} value={score} placeholder='Enter score'>
+            
+          </NumberInputField>
+        </NumberInput>
+        <Button type='submit'>
+          Add data
+        </Button>
+  </Form>
+
+</TableContainer>
+          </Box>
           <Box>
             <H2>Initial site</H2>
             <P>
